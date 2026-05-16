@@ -49,7 +49,7 @@ void ProgramOptions::Parse(int argc, char *argv[])
 
     command_ = commandIt->second;
 
-    if (!vm.contains("input") && !vm.contains("i"))
+    if (!vm.contains("input"))
     {
         std::print("Argument missing: --input\n");
         return;
@@ -57,7 +57,7 @@ void ProgramOptions::Parse(int argc, char *argv[])
 
     inputFile_ = vm["input"].as<std::string>();
 
-    if (!vm.contains("output") && !vm.contains("o"))
+    if (!vm.contains("output"))
     {
         std::print("Argument missing: --output\n");
         return;
@@ -67,7 +67,7 @@ void ProgramOptions::Parse(int argc, char *argv[])
 
     if (command_ == COMMAND_TYPE::ENCRYPT || command_ == COMMAND_TYPE::DECRYPT)
     {
-        if (!vm.contains("password") && !vm.contains("p"))
+        if (!vm.contains("password"))
         {
             std::print("Argument missing: --password (encrypt/decrypt)\n");
             return;
