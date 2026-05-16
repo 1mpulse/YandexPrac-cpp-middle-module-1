@@ -11,9 +11,9 @@ ProgramOptions::ProgramOptions() : desc_("Allowed options")
     desc_.add_options()
         ("help", "list of available options")
         ("command", po::value<std::string>(), "command: encrypt, decrypt or checksum")
-        ("input", po::value<std::string>(), "path input file")
-        ("output", po::value<std::string>(), "path output file")
-        ("password", po::value<std::string>(), "password for encryption/decryption");
+        ("input,i", po::value<std::string>(), "path input file")
+        ("output,o", po::value<std::string>(), "path output file")
+        ("password,p", po::value<std::string>(), "password for encryption/decryption");
 }
 
 ProgramOptions::~ProgramOptions() = default;
@@ -49,7 +49,7 @@ void ProgramOptions::Parse(int argc, char *argv[])
 
     command_ = commandIt->second;
 
-    if (!vm.contains("input"))
+    if (!vm.contains("input") && !vm.contains("i"))
     {
         std::print("Argument missing: --input\n");
         return;
@@ -57,7 +57,7 @@ void ProgramOptions::Parse(int argc, char *argv[])
 
     inputFile_ = vm["input"].as<std::string>();
 
-    if (!vm.contains("output"))
+    if (!vm.contains("output") && !vm.contains("o"))
     {
         std::print("Argument missing: --output\n");
         return;
@@ -67,7 +67,7 @@ void ProgramOptions::Parse(int argc, char *argv[])
 
     if (command_ == COMMAND_TYPE::ENCRYPT || command_ == COMMAND_TYPE::DECRYPT)
     {
-        if (!vm.contains("password"))
+        if (!vm.contains("password") && !vm.contains("p"))
         {
             std::print("Argument missing: --password (encrypt/decrypt)\n");
             return;
