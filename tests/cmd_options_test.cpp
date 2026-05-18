@@ -2,7 +2,7 @@
 
 #include "cmd_options.h"
 
-TEST(ProgramOptions, EncryptLongArgs)
+TEST(ProgramOptions, Test1)
 {
     CryptoGuard::ProgramOptions options;
 
@@ -22,7 +22,7 @@ TEST(ProgramOptions, EncryptLongArgs)
     EXPECT_EQ(options.GetPassword(), "secret");
 }
 
-TEST(ProgramOptions, DecryptShortArgs)
+TEST(ProgramOptions, Test2)
 {
     CryptoGuard::ProgramOptions options;
 
@@ -42,7 +42,7 @@ TEST(ProgramOptions, DecryptShortArgs)
     EXPECT_EQ(options.GetPassword(), "secret");
 }
 
-TEST(ProgramOptions, ChecksumClearsPassword)
+TEST(ProgramOptions, Test3)
 {
     CryptoGuard::ProgramOptions options;
 
@@ -72,7 +72,7 @@ TEST(ProgramOptions, ChecksumClearsPassword)
     EXPECT_TRUE(options.GetPassword().empty());
 }
 
-TEST(ProgramOptions, NoCommand)
+TEST(ProgramOptions, Test4)
 {
     CryptoGuard::ProgramOptions options;
 
@@ -89,7 +89,7 @@ TEST(ProgramOptions, NoCommand)
     EXPECT_TRUE(options.GetPassword().empty());
 }
 
-TEST(ProgramOptions, ChecksumWithoutOutput)
+TEST(ProgramOptions, Test5)
 {
     CryptoGuard::ProgramOptions options;
 
@@ -106,7 +106,7 @@ TEST(ProgramOptions, ChecksumWithoutOutput)
     EXPECT_TRUE(options.GetPassword().empty());
 }
 
-TEST(ProgramOptions, EncryptWithoutPassword)
+TEST(ProgramOptions, Test6)
 {
     CryptoGuard::ProgramOptions options;
 
@@ -124,7 +124,7 @@ TEST(ProgramOptions, EncryptWithoutPassword)
     EXPECT_TRUE(options.GetPassword().empty());
 }
 
-TEST(ProgramOptions, UnknownCommand)
+TEST(ProgramOptions, Test7)
 {
     CryptoGuard::ProgramOptions options;
 
