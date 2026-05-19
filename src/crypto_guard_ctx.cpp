@@ -81,11 +81,13 @@ std::string CryptoGuardCtx::CalculateChecksum(std::iostream &inStream)
 
 void CryptoGuardCtx::PImpl::EncryptFile(std::iostream &inStream, std::iostream &outStream, std::string_view password)
 {
-    if (!inStream.good()) {
+    if (!inStream.good())
+    {
         throw std::runtime_error{"Bad input"};
     }
 
-    if (!outStream.good()) {
+    if (!outStream.good())
+    {
         throw std::runtime_error{"Bad output"};
     }
 
@@ -138,7 +140,61 @@ void CryptoGuardCtx::PImpl::EncryptFile(std::iostream &inStream, std::iostream &
 
 void CryptoGuardCtx::PImpl::DecryptFile(std::iostream &inStream, std::iostream &outStream, std::string_view password)
 {
+    if (!inStream.good())
+    {
+        throw std::runtime_error{"Bad input"};
+    }
 
+    if (!outStream.good())
+    {
+        throw std::runtime_error{"Bad output"};
+    }
+
+    auto params = CreateChiperParamsFromPassword(password);
+    std::string input((std::istreambuf_iterator<char>(inStream)), std::istreambuf_iterator<char>());
+
+    if (!inStream.good())
+    {
+        throw std::runtime_error{"Bad input #2"};
+    }
+
+    int outLen = 0;
+    int tmpLen = 0;
+    std::vector<unsigned char> outBuf(input.size() + EVP_MAX_BLOCK_LENGTH);
+
+    auto *ctx = EVP_CIPHER_CTX_new();
+    if(!ctx)
+    {
+        throw std::runtime_error{"Failed to create EVP_CIPHER_CTX"};
+    }
+
+    if (EVP_DecryptInit_ex(ctx, params.cipher, nullptr, params.key.data(), params.iv.data()) != 1)
+    {
+        EVP_CIPHER_CTX_free(ctx);
+        throw std::runtime_error{"Failed EVP_DecryptInit_ex"};
+    }
+
+    if (EVP_DecryptUpdate(ctx, outBuf.data(), &outLen, reinterpret_cast<const unsigned char *>(input.data()), static_cast<int>(input.size())) != 1)
+    {
+        EVP_CIPHER_CTX_free(ctx);
+        throw std::runtime_error{"Failed EVP_DecryptUpdate"};
+    }
+
+    if (EVP_DecryptFinal_ex(ctx, outBuf.data() + outLen, &tmpLen) != 1)
+    {
+        EVP_CIPHER_CTX_free(ctx);
+        throw std::runtime_error{"Failed EVP_DecryptFinal_ex"};
+    }
+
+    outLen += tmpLen;
+    EVP_CIPHER_CTX_free(ctx);
+
+    outStream.write(reinterpret_cast<const char *>(outBuf.data()), outLen);
+
+    if (!outStream.good())
+    {
+        throw std::runtime_error{"Bad output #3"};
+    }
 }
 
 std::string CryptoGuardCtx::PImpl::CalculateChecksum(std::iostream &inStream)
