@@ -9,6 +9,7 @@
 #include <vector>
 
 #include <openssl/evp.h>
+#include <openssl/err.h>
 
 #include "crypto_guard_ctx.h"
 
@@ -33,6 +34,15 @@ public:
     void EncryptFile(std::iostream &inStream, std::iostream &outStream, std::string_view password);
     void DecryptFile(std::iostream &inStream, std::iostream &outStream, std::string_view password);
     std::string CalculateChecksum(std::iostream &inStream);
+
+    static void LogError(const std::string& log)
+    {
+        char errorBuffer[512];
+        const auto errorCode = ERR_get_error();
+        ERR_error_string_n(errorCode, errorBuffer, sizeof(errorBuffer));
+
+        throw std::runtime_error(log + "| Error SSL Code: ( " + errorBuffer + " )");
+    }
 
 private:
     AesCipherParams CreateChiperParamsFromPassword(std::string_view password)
@@ -93,8 +103,8 @@ void CryptoGuardCtx::PImpl::EncryptFile(std::iostream &inStream, std::iostream &
         throw std::runtime_error{"Bad output"};
     }
 
-    auto params = CreateChiperParamsFromPassword(password);
-    std::string input((std::istreambuf_iterator<char>(inStream)), std::istreambuf_iterator<char>());
+    const auto params = CreateChiperParamsFromPassword(password);
+    const std::string input((std::istreambuf_iterator<char>(inStream)), std::istreambuf_iterator<char>());
 
     if (!inStream.good())
     {
@@ -108,25 +118,25 @@ void CryptoGuardCtx::PImpl::EncryptFile(std::iostream &inStream, std::iostream &
     auto *ctx = EVP_CIPHER_CTX_new();
     if(!ctx)
     {
-        throw std::runtime_error{"Failed to create EVP_CIPHER_CTX"};
+        LogError("Failed to create EVP_CIPHER_CTX");
     }
 
     if (EVP_EncryptInit_ex(ctx, params.cipher, nullptr, params.key.data(), params.iv.data()) != 1)
     {
         EVP_CIPHER_CTX_free(ctx);
-        throw std::runtime_error{"Failed EVP_EncryptInit_ex"};
+        LogError("Failed EVP_EncryptInit_ex");
     }
 
     if (EVP_EncryptUpdate(ctx, outBuf.data(), &outLen, reinterpret_cast<const unsigned char *>(input.data()), static_cast<int>(input.size())) != 1)
     {
         EVP_CIPHER_CTX_free(ctx);
-        throw std::runtime_error{"Failed EVP_EncryptUpdate"};
+        LogError("Failed EVP_EncryptUpdate");
     }
 
     if (EVP_EncryptFinal_ex(ctx, outBuf.data() + outLen, &tmpLen) != 1)
     {
         EVP_CIPHER_CTX_free(ctx);
-        throw std::runtime_error{"Failed EVP_EncryptFinal_ex"};
+        LogError("Failed EVP_EncryptFinal_ex");
     }
 
     outLen += tmpLen;
@@ -152,8 +162,8 @@ void CryptoGuardCtx::PImpl::DecryptFile(std::iostream &inStream, std::iostream &
         throw std::runtime_error{"Bad output"};
     }
 
-    auto params = CreateChiperParamsFromPassword(password);
-    std::string input((std::istreambuf_iterator<char>(inStream)), std::istreambuf_iterator<char>());
+    const auto params = CreateChiperParamsFromPassword(password);
+    const std::string input((std::istreambuf_iterator<char>(inStream)), std::istreambuf_iterator<char>());
 
     if (!inStream.good())
     {
@@ -167,25 +177,25 @@ void CryptoGuardCtx::PImpl::DecryptFile(std::iostream &inStream, std::iostream &
     auto *ctx = EVP_CIPHER_CTX_new();
     if(!ctx)
     {
-        throw std::runtime_error{"Failed to create EVP_CIPHER_CTX"};
+        LogError("Failed to create EVP_CIPHER_CTX");
     }
 
     if (EVP_DecryptInit_ex(ctx, params.cipher, nullptr, params.key.data(), params.iv.data()) != 1)
     {
         EVP_CIPHER_CTX_free(ctx);
-        throw std::runtime_error{"Failed EVP_DecryptInit_ex"};
+        LogError("Failed EVP_DecryptInit_ex");
     }
 
     if (EVP_DecryptUpdate(ctx, outBuf.data(), &outLen, reinterpret_cast<const unsigned char *>(input.data()), static_cast<int>(input.size())) != 1)
     {
         EVP_CIPHER_CTX_free(ctx);
-        throw std::runtime_error{"Failed EVP_DecryptUpdate"};
+        LogError("Failed EVP_DecryptUpdate");
     }
 
     if (EVP_DecryptFinal_ex(ctx, outBuf.data() + outLen, &tmpLen) != 1)
     {
         EVP_CIPHER_CTX_free(ctx);
-        throw std::runtime_error{"Failed EVP_DecryptFinal_ex"};
+        LogError("Failed EVP_DecryptFinal_ex");
     }
 
     outLen += tmpLen;
@@ -216,12 +226,12 @@ std::string CryptoGuardCtx::PImpl::CalculateChecksum(std::iostream &inStream)
 
     if (!mdctx)
     {
-        throw std::runtime_error{"mdctx is invalid"};
+        LogError("mdctx is invalid");
     }
 
     if (!EVP_DigestInit_ex2(mdctx.get(), md, nullptr))
     {
-        throw std::runtime_error{"Failed EVP_DigestInit_ex2"};
+        LogError("Failed EVP_DigestInit_ex2");
     }
 
     char buffer[4096];
@@ -234,7 +244,7 @@ std::string CryptoGuardCtx::PImpl::CalculateChecksum(std::iostream &inStream)
         {
             if (!EVP_DigestUpdate(mdctx.get(), buffer, static_cast<size_t>(bytesRead)))
             {
-                throw std::runtime_error{"Failed EVP_DigestUpdate"};
+                LogError("Failed EVP_DigestUpdate");
             }
         }
 
@@ -246,7 +256,7 @@ std::string CryptoGuardCtx::PImpl::CalculateChecksum(std::iostream &inStream)
 
     if (!EVP_DigestFinal_ex(mdctx.get(), md_value, &md_len))
     {
-        throw std::runtime_error{"Failed EVP_DigestFinal_ex"};
+        LogError("Failed EVP_DigestFinal_ex");
     }
 
     std::stringstream ss;
