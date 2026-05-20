@@ -85,3 +85,33 @@ TEST(CryptoGuardDecrypt, Test3)
 
     EXPECT_THROW(ctx.DecryptFile(encryptedInput, output, "password"), std::runtime_error);
 }
+
+TEST(CryptoGuardCalculateChecksum, Test1)
+{
+    CryptoGuard::CryptoGuardCtx ctx;
+
+    std::stringstream input("hello world!");
+
+    EXPECT_EQ(ctx.CalculateChecksum(input),
+              "7509e5bda0c762d2bac7f90d758b5b2263fa01ccbc542ab5e3df163be08e6ca9");
+}
+
+TEST(CryptoGuardCalculateChecksum, Test2)
+{
+    CryptoGuard::CryptoGuardCtx ctx;
+
+    std::stringstream input("");
+
+    EXPECT_EQ(ctx.CalculateChecksum(input),
+              "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855");
+}
+
+TEST(CryptoGuardCalculateChecksum, Test3)
+{
+    CryptoGuard::CryptoGuardCtx ctx;
+
+    std::stringstream input("hello world!");
+    input.setstate(std::ios::badbit);
+
+    EXPECT_THROW(ctx.CalculateChecksum(input), std::runtime_error);
+}

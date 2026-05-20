@@ -1,8 +1,10 @@
 #include <algorithm>
 #include <array>
+#include <iomanip>
 #include <iostream>
 #include <iterator>
 #include <memory>
+#include <sstream>
 #include <stdexcept>
 #include <vector>
 
@@ -199,7 +201,62 @@ void CryptoGuardCtx::PImpl::DecryptFile(std::iostream &inStream, std::iostream &
 
 std::string CryptoGuardCtx::PImpl::CalculateChecksum(std::iostream &inStream)
 {
-    return "NOT_IMPLEMENTED";
+    if (!inStream.good())
+    {
+        throw std::runtime_error{"Bad input"};
+    }
+
+    const auto *md = EVP_sha256();
+
+    unsigned char md_value[EVP_MAX_MD_SIZE];
+    unsigned int md_len = 0;
+
+    auto mdctxDeleter = [](EVP_MD_CTX *ctx) { EVP_MD_CTX_free(ctx); };
+    std::unique_ptr<EVP_MD_CTX, decltype(mdctxDeleter)> mdctx(EVP_MD_CTX_new(), mdctxDeleter);
+
+    if (!mdctx)
+    {
+        throw std::runtime_error{"mdctx is invalid"};
+    }
+
+    if (!EVP_DigestInit_ex2(mdctx.get(), md, nullptr))
+    {
+        throw std::runtime_error{"Failed EVP_DigestInit_ex2"};
+    }
+
+    char buffer[4096];
+    while (inStream.good())
+    {
+        inStream.read(buffer, sizeof(buffer));
+        const auto bytesRead = inStream.gcount();
+
+        if (bytesRead > 0)
+        {
+            if (!EVP_DigestUpdate(mdctx.get(), buffer, static_cast<size_t>(bytesRead)))
+            {
+                throw std::runtime_error{"Failed EVP_DigestUpdate"};
+            }
+        }
+
+        if (inStream.bad())
+        {
+            throw std::runtime_error{"Bad input #2"};
+        }
+    }
+
+    if (!EVP_DigestFinal_ex(mdctx.get(), md_value, &md_len))
+    {
+        throw std::runtime_error{"Failed EVP_DigestFinal_ex"};
+    }
+
+    std::stringstream ss;
+    ss << std::hex << std::setfill('0');
+    for (unsigned int i = 0; i < md_len; ++i)
+    {
+        ss << std::setw(2) << static_cast<int>(md_value[i]);
+    }
+
+    return ss.str();
 }
 
 }  // namespace CryptoGuard
